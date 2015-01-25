@@ -21,6 +21,17 @@ class TrelloGithub
     @formatter = formatter
   end
 
+  def start
+    cards = todo_cards
+    puts @formatter.to_selection_list(cards)
+    puts
+    i = @thor.ask("Please pick a card: ").to_i
+    card = cards[i]
+    move_to(:doing, card)
+    puts
+    puts "You're now working on #{bold(card.name)}`"
+  end
+
   def set_default_board
     boards = Trello::Board.all
     puts "\t#{underline("Select the board to use for this GitHub repository")}"
@@ -60,6 +71,21 @@ class TrelloGithub
   end
 
   private
+
+  def move_to(list_name, card)
+    card.list_id = @config.get("lists.#{list_name}")
+    card.save
+  end
+
+  def todo_cards
+    todo_ids = @config.get('lists.to_do')
+    # Cards are in a custom collection that does not behave like an array -
+    # we have to trick this a bit
+    todo_ids.map { |id| get_list(id).cards }.each_with_object([]) do |cards, arr|
+      cards.each { |card| arr << card }
+    end
+  end
+
   def get_list(id)
     Trello::List.find(id)
   end
